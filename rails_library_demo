@@ -1,0 +1,280 @@
+rails new library
+cd library
+
+Rails g model Book
+Rails g model Subject
+
+
+Edit Book.rb in     app/models/Book.rb
+
+class Book < ActiveRecord::Base
+   belongs_to :subject
+end
+
+class Subject < ActiveRecord::Base
+   has_many :books
+end
+
+#Validation-
+class Book < ActiveRecord::Base
+   belongs_to :subject
+   validates_presence_of :title
+   validates_numericality_of :price, :message=>"Error Message"
+end
+  
+#migrations
+Rails g migration books
+Rails g migration subjects
+
+
+Modify migration files.
+
+class Books < ActiveRecord::Migration
+   
+   def self.up
+      create_table :books do |t|
+         t.column :title, :string, :limit => 32, :null => false
+         t.column :price, :float
+         t.column :subject_id, :integer
+         t.column :description, :text
+         t.column :created_at, :timestamp
+      end
+   end
+
+   def self.down
+      drop_table :books
+   end
+end
+
+
+
+class Subjects < ActiveRecord::Migration
+   def self.up
+      
+      create_table :subjects do |t|
+         t.column :name, :string
+      end
+	
+      Subject.create :name => "Physics"
+      Subject.create :name => "Mathematics"
+      Subject.create :name => "Chemistry"
+      Subject.create :name => "Psychology"
+      Subject.create :name => "Geography"
+   end
+
+   def self.down
+      drop_table :subjects
+   end
+end
+
+Run the Migration
+Rails db: migrate
+
+rails generate controller Book
+
+class BookController < ApplicationController
+   def list
+   end
+   
+   def show
+   end
+   
+   def new
+   end
+   
+   def create
+   end
+   
+   def edit
+   end
+   
+   def update
+   end
+   
+   def delete
+   end
+   
+end
+
+Implements all method
+
+def list
+      @books = Book.all
+   end
+
+   def show
+      @book = Book.find(params[:id])
+   end
+  
+   def new
+      @book = Book.new
+      @subjects = Subject.all
+   end
+
+   def book_params
+      params.require(:books).permit(:title, :price, :subject_id, :description)
+   end
+
+   def create
+      @book = Book.new(book_params)
+
+      if @book.save
+         redirect_to :action => 'list'
+      else
+         @subjects = Subject.all
+         render :action => 'new'
+      end
+   end
+   
+   def edit
+      @book = Book.find(params[:id])
+      @subjects = Subject.all
+   end
+   
+   def book_param
+      params.require(:book).permit(:title, :price, :subject_id, :description)
+   end
+   
+   def update
+      @book = Book.find(params[:id])
+      
+      if @book.update_attributes(book_param)
+         redirect_to :action => 'show', :id => @book
+      else
+         @subjects = Subject.all
+         render :action => 'edit'
+      end
+   end
+   
+   def delete
+      Book.find(params[:id]).destroy
+      redirect_to :action => 'list'
+   end
+   
+   def show_subjects
+      @subject = Subject.find(params[:id])
+   end
+
+End
+
+ Edit routes.rb
+root 'book#list'
+   get 'book/new'
+   post 'book/create'
+   patch 'book/update'
+   get 'book/list'
+   get 'book/show'
+   get 'book/edit'
+   get 'book/delete'
+   get 'book/update'
+   get 'book/show_subjects'
+
+Creating View File for list Method 
+list.html.erb
+<% if @books.blank? %>
+<p>There are not any books currently in the system.</p>
+<% else %>
+<p>These are the current books in our system</p>
+
+<ul id = "books">
+   <% @books.each do |c| %>
+   <li><%= link_to c.title, {:action => 'show', :id => c.id} -%></li>
+   <% end %>
+</ul>
+
+<% end %>
+<p><%= link_to "Add new Book", {:action => 'new' }%></p>
+  
+
+Rails s  
+Check the output.
+Create and edit 
+new.html.erb
+
+<%= form_tag :action => 'create' do %>
+<p><label for = "book_title">Title</label>:
+
+<%= text_field 'books', 'title' %></p>
+<p><label for = "book_price">Price</label>:
+
+<%= text_field 'books', 'price' %></p>
+<p><label for = "book_subject_id">Subject</label>:
+
+<%= collection_select(:books, :subject_id, @subjects, :id, :name, prompt: true) %></p>
+<p><label for = "book_description">Description</label><br/>
+
+<%= text_area 'books', 'description' %></p>
+<%= submit_tag "Create" %>
+
+<% end -%>
+<%= link_to 'Back', {:action => 'list'} %>
+
+
+
+Creating View File for show Method
+<h1><%= @book.title %></h1>
+<p>
+   <strong>Price: </strong> $<%= @book.price %><br />
+   <strong>Subject :</strong> <%= @book.subject.name %><br />
+   <strong>Created Date:</strong> <%= @book.created_at %><br />
+</p>
+
+<p><%= @book.description %></p>
+
+<hr />
+
+<%= link_to 'Back', {:action => 'list'} %>
+
+Creating View File for edit Method
+<h1>Edit Book Detail</h1>
+
+<%= form_for @book, :url =>{:action => "update", :id =>@book} do |f| %>
+
+<p>Title: <%= f.text_field 'title' %></p>
+<p>Price: <%= f.text_field  'price' %></p>
+<p>Subject: <%= f.collection_select :subject_id, Subject.all, :id, :name %></p>
+<p>Description<br/>
+
+<%= f.text_area 'description' %></p>
+<%= f.submit "Save changes" %>
+<% end %>
+
+<%= link_to 'Back', {:action => 'list' } %>
+
+Creating View File for delete Method
+<li>
+   <%= link_to c.title, {:action => 'show', :id => c.id} -%>
+   <b> <%= link_to 'Edit', {:action => 'edit', :id => c.id} %></b>
+   <b> <%= link_to "Delete", {:action => 'delete', :id => c.id},
+      :confirm => "Are you sure you want to delete this item?" %></b>
+</li>
+Creating View File for show_subjects Method
+<h1><%= @subject.name -%></h1>
+
+<ul>
+   <% @subject.books.each do |c| %>
+   <li><%= link_to c.title, :action => "show", :id => c.id -%></li>
+   <% end %>
+</ul>
+
+modify the Subject: line of show.html.erb 
+<strong>Subject: </strong> <%= link_to @book.subject.name,
+:action => "show_subjects", :id => @book.subject.id %><br />
+
+Modify list.html.erb 
+<ul id = "subjects">
+   <% Subject.find(:all).each do |c| %>
+   <li><%= link_to c.name, :action => "show_subjects", :id => c.id %></li>
+   <% end %>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
