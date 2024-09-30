@@ -1,0 +1,100 @@
+rails new book_app
+
+cd book_app
+
+rails g model Author name:string
+rails g model Book title:string genre:string author:references
+
+rails db:migrate
+
+#change in model
+class Author < ApplicationRecord
+  has_many :books, dependent: :destroy
+  validates :name, presence: true
+end
+
+class Book < ApplicationRecord
+  belongs_to :author
+  validates :title, :genre, presence: true
+end
+
+
+# db/seeds.rb #create data
+
+# Create authors
+author1 = Author.create(name: "J.K.")
+author2 = Author.create(name: "George")
+
+# Create books
+Book.create(title: "Harry Potter ", genre: "Fantasy", author: author1)
+Book.create(title: "Chamber of Secrets", genre: "Fantasy", author: author1)
+Book.create(title: "A Game of Thrones", genre: "Fantasy", author: author2)
+
+
+rails db:seed
+
+rails g controller Authors index show
+rails g controller Books index show
+
+#routes
+Rails.application.routes.draw do
+    resources :authors, only: [:index, :show] do
+    resources :books, only: [:index, :show]
+  end
+end
+
+#edit in Controller
+class AuthorsController < ApplicationController
+  def index
+    @authors = Author.all
+  end
+
+  def show
+    @author = Author.find(params[:id])
+  end
+end
+
+
+class BooksController < ApplicationController
+  def index
+    @author = Author.find(params[:author_id])
+    @books = author.books
+  end
+
+  def show
+    @book = Book.find(params[:id])
+  end
+end
+
+
+
+
+
+
+#views author/index
+
+<h1>Authors</h1>
+<ul>
+  <% authors.each do |author| %>
+    <li><%= link_to author.name, author_path(author) %></li>
+  <% end %>
+</ul>
+
+#views author/show
+
+<h1><%= author.name %></h1>
+<h2>Books:</h2>
+<ul>
+  <% author.books.each do |book| %>
+    <li><%= link_to book.title, author_book_path(author, book) %></li>
+  <% end %>
+</ul>
+
+
+#views book/show
+<h1><%= book.title %></h1>
+<p>Genre: <%= book.genre %></p>
+<p>Author: <%= link_to book.author.name, author_path(book.author) %></p>
+
+#run application
+rails server
